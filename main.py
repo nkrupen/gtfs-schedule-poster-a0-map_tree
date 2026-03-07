@@ -1707,7 +1707,7 @@ class GTFSIntegratedPoster:
     # ----------------------------
     # POSTER GENERATION
     # ----------------------------
-    def generate_poster(self, stop_id, date_label, output_file, school_week_start, holiday_week_start):
+    def generate_poster(self, stop_id, date_label, output_file, school_week_start, holiday_week_start, city_name):
         stop_name, stop_code, stop_zone = self.get_stop_info(stop_id)
         
         self.config["color"] = "#3069b3"
@@ -1798,7 +1798,12 @@ class GTFSIntegratedPoster:
             sched_html += build_sched_html("Sun", "Sunnuntai", "Sunday")
             sched_html += legend_html
 
-            schedule_url = f"https://kotka.digitransit.fi/pysakit/Kotka:{stop_id}"
+            # --- DYNAMIC QR CODE URL ---
+            city_subdomain = city_name.lower()
+            city_prefix = city_name.capitalize()
+            schedule_url = f"https://{city_subdomain}.digitransit.fi/pysakit/{city_prefix}:{stop_id}"
+            # ---------------------------
+            
             encoded_url = urllib.parse.quote(schedule_url)
             qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&color=000000&bgcolor=FFFFFF&data={encoded_url}"
 
@@ -2233,9 +2238,9 @@ if __name__ == "__main__":
         return filename
 
     print("--- File Setup ---")
-    gtfs_input = input("Enter GTFS zip filename (default: gtfs.zip): ").strip() or "gtfs.zip"
-    routes_input = input("Enter Routes GPKG filename (default: routes.gpkg): ").strip() or "routes.gpkg"
-    water_input = input("Enter Water GeoJSON filename (default: blue_areas.geojson): ").strip() or "blue_areas.geojson"
+    gtfs_input = input("Enter GTFS zip filename (default: 218.zip): ").strip() or "218.zip"
+    routes_input = input("Enter Routes GPKG filename (default: rjuli.gpkg): ").strip() or "rjuli.gpkg"
+    water_input = input("Enter Water GeoJSON filename (default: blue_areas_kotka_hamina_pyhtaa.geojson): ").strip() or "blue_areas_kotka_hamina_pyhtaa.geojson"
 
     gtfs_file = find_file_main(gtfs_input)
     routes_file = find_file_main(routes_input)
@@ -2251,9 +2256,10 @@ if __name__ == "__main__":
         if stop_ids_input:
             date_label = input("Enter printed date label (default: 10.8.2025–31.5.2026): ").strip() or "10.8.2025–31.5.2026"
             
-            # --- NEW DATE PROMPTS ---
+            # --- NEW DATE AND CITY PROMPTS ---
             school_date_input = input("Enter a normal school week start date (YYYY-MM-DD) [default: 2025-12-08]: ").strip() or "2025-12-08"
             holiday_date_input = input("Enter a holiday week start date (YYYY-MM-DD) [default: 2025-10-20]: ").strip() or "2025-10-20"
+            city_input = input("Enter the city name for the QR code (default: Kotka): ").strip() or "Kotka"
             
             try:
                 school_week_start = datetime.strptime(school_date_input, "%Y-%m-%d")
@@ -2270,8 +2276,8 @@ if __name__ == "__main__":
                 if not stop_id: continue
                 print(f"\n--- Processing stop {stop_id} ---")
                 
-                # Pass the dates into the generate_poster method
-                pdf_file = gen.generate_poster(stop_id, date_label, f"{stop_id}.html", school_week_start, holiday_week_start)
+                # Pass the dates and the city input into the generate_poster method
+                pdf_file = gen.generate_poster(stop_id, date_label, f"{stop_id}.html", school_week_start, holiday_week_start, city_input)
                 
                 if pdf_file and os.path.exists(pdf_file):
                     generated_pdfs.append(pdf_file)
