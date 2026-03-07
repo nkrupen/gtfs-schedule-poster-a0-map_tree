@@ -25,11 +25,10 @@ warnings.filterwarnings("ignore")
 
 
 class GTFSIntegratedPoster:
-    def __init__(self, gtfs_path, routes_gpkg_path=None, water_geojson_path="blue_areas_kotka_hamina_pyhtaa.geojson"):
+    def __init__(self, gtfs_path, routes_gpkg_path=None, water_geojson_path=None):
         self.gtfs_path = self._find_file(gtfs_path)
-        self.routes_gpkg_path = self._find_file(routes_gpkg_path) if routes_gpkg_path else None
+        self.routes_gpkg_path = self._find_file(routes_gpkg_path)
         self.water_geojson_path = self._find_file(water_geojson_path)
-        self.template_path = self._find_file("poster_template.html")
         self.data = {}
 
         # --- Configuration (UPDATED DIMENSIONS) ---
@@ -176,6 +175,16 @@ class GTFSIntegratedPoster:
     def _clean_stop_name(self, name):
         name = re.sub(r"\s*\(.*?\)", "", str(name))
         return name.strip()
+
+    def _read_svg_candidates(self, candidates):
+        for p in candidates:
+            try:
+                if p and os.path.exists(p):
+                    with open(p, "r", encoding="utf-8") as sf:
+                        return sf.read()
+            except Exception:
+                pass
+        return ""
 
     # ----------------------------
     # MAP HELPERS
@@ -1157,6 +1166,7 @@ class GTFSIntegratedPoster:
         final_html_map = {}
         total_rows_count = 0
 
+        # UPDATED: 'Hour' and 'min / route' are stacked under their Finnish counterparts and aligned
         clarification_header = """
         <div class="sc-clarification" style="display: flex; align-items: flex-start;">
             <div class="sc-c-item" style="width: 3.5em; flex-shrink: 0; display: flex; flex-direction: column;">
@@ -1184,10 +1194,13 @@ class GTFSIntegratedPoster:
                 base_style = "display: inline-block; padding: 2px 6px; border-radius: 4px; margin: 0 2px; border: 1px solid transparent;"
                 text_color = "black"
                 
+                # UPDATED background and font color logic
                 if e["type"] == "SCHOOL":
+                    # Lighter background for schedule boxes
                     style_str = base_style + "background-color: #F0F8FF; border-color: #BBDEFB; color: #0D47A1;"
                     text_color = "#0D47A1"
                 elif e["type"] == "HOLIDAY":
+                    # Lighter background for schedule boxes
                     style_str = base_style + "background-color: #FFF3E0; border-color: #FFE0B2; color: #CC4700;"
                     text_color = "#CC4700"
                 else:
@@ -1294,8 +1307,11 @@ class GTFSIntegratedPoster:
             # -------------------------------------------------------------
 
             # --- UPDATED LOGIC: Sequence based slicing ---
+            # 1. Identify intermediate stops (exclude last)
             intermediate_stops = future.iloc[:-1]
+            # 2. Take top 10 next stops
             next_10_stops = intermediate_stops.head(10)
+            # 3. Add the terminal (last stop)
             last_stop_row = future.iloc[[-1]]
             
             selected_rows = pd.concat([next_10_stops, last_stop_row]).sort_values("stop_sequence")
@@ -1488,12 +1504,14 @@ class GTFSIntegratedPoster:
 
         # 2. NEW LOGIC: Align leftmost column (70% rule)
         min_x = min(n["x"] for n in visible_nodes)
+        # Group nodes in the leftmost column (using a small 5px tolerance for floating point)
         leftmost_nodes = [n for n in visible_nodes if abs(n["x"] - min_x) < 5.0]
         
         if leftmost_nodes:
             start_count = sum(1 for n in leftmost_nodes if n.get("text_anchor", "start") == "start")
             ratio = start_count / len(leftmost_nodes)
             
+            # If 70% or more are on the right ("start"), force ALL of them to the right
             if ratio >= 0.70:
                 for n in leftmost_nodes:
                     n["text_anchor"] = "start"
@@ -1548,11 +1566,13 @@ class GTFSIntegratedPoster:
         stroke_path = 5 * font_scale
         stroke_circ = 4 * font_scale
 
+        # UPDATED: Increased Olet Tässä text size
         f_main = 80 * font_scale
         f_sub = 45 * font_scale
 
         f_node = 90 * font_scale
         
+        # UPDATED: Increased line height for stop names wrapping
         line_h = 85 * font_scale
         text_x_offset = 60 * font_scale
 
@@ -1707,18 +1727,8 @@ class GTFSIntegratedPoster:
         else:
             schedule_col_gap = "10px"
         
-        def _read_svg_candidates(candidates):
-            for p in candidates:
-                try:
-                    if p and os.path.exists(p):
-                        with open(p, "r", encoding="utf-8") as sf:
-                            return sf.read()
-                except Exception:
-                    pass
-            return ""
-
-        logo_svg_inline = _read_svg_candidates([self._find_file("logo.svg")])
-        alareuna_svg_inline = _read_svg_candidates([self._find_file("alareuna.svg")])
+        logo_svg_inline = self._read_svg_candidates([self._find_file("logo.svg")])
+        alareuna_svg_inline = self._read_svg_candidates([self._find_file("alareuna.svg")])
 
         try:
             sched_html_chunks, legend_html, _ = self.generate_schedule_html_data(stop_id, school_week_start, holiday_week_start)
@@ -1819,50 +1829,365 @@ class GTFSIntegratedPoster:
             
             stop_number_html = ""
             if stop_zone != "B":
+                # --- UPDATE: Added color white to 'Stop number' span ---
                 stop_number_html = f"""
                 <div class="h-info-group">
                     <div class="h-label" style="color: white;">Pysäkkinumero <span class="en" style="color: white;">| Stop number</span></div>
                     <div class="h-value">{display_code}</div>
                 </div>
                 """
+                # -----------------------------------------------------
 
-            # --- READ TEMPLATE AND REPLACE VARIABLES ---
-            if not self.template_path or not os.path.exists(self.template_path):
-                print("❌ Error: 'poster_template.html' not found! Make sure the file exists.")
-                return None
+            html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page {{
+        size: {self.page_w_mm}mm {self.page_h_mm}mm;
+        margin: 0;
+    }}
+
+    * {{
+        box-sizing: border-box;
+    }}
+
+    html, body {{
+        width: {self.page_w_mm}mm;
+        height: {self.page_h_mm}mm;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background-color: {self.config['color']};
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }}
+
+    @media print {{
+        html, body {{
+            width: {self.page_w_mm}mm !important;
+            height: {self.page_h_mm}mm !important;
+            overflow: hidden !important;
+        }}
+    }}
+
+    .crop-layer {{
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: {self.page_w_mm}mm;
+        height: {self.page_h_mm}mm;
+        pointer-events: none;
+        z-index: 9999;
+    }}
+    .crop-layer svg {{
+        display: block;
+        width: {self.page_w_mm}mm;
+        height: {self.page_h_mm}mm;
+    }}
+
+    .poster-container {{
+        position: fixed;
+        top: {self.bleed_mm}mm;
+        left: {self.bleed_mm}mm;
+        width: {self.trim_w_mm}mm;
+        height: {self.trim_h_mm}mm;
+
+        display: grid;
+        grid-template-columns: 60fr 40fr;
+        grid-template-rows: auto auto minmax(0, 1fr) 200mm;
+
+        padding: {self.config['layout_gap_mm']}mm;
+        gap: {self.config['layout_gap_mm']}mm;
+
+        overflow: hidden;
+        background: {self.config['color']};
+    }}
+
+    .en {{ font-style: italic; color: #444; }}
+
+    .header {{
+        grid-column: 1 / span 2;
+        background-color: {self.config['color']};
+        padding: 15mm 20mm 5mm 20mm;
+        color: white;
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }}
+    .header-left {{ display: flex; flex-direction: column; }}
+    .h-stop-name {{ font-size: 6em; font-weight: bold; color: white; line-height: 1; }}
+    .h-date {{ font-size: 3em; margin-top: 5px; font-weight: normal; color: white; font-style: normal; }}
+
+    .header-right {{
+        display: flex;
+        align-items: baseline;
+        gap: 60px;
+        text-align: center;
+    }}
+    .h-info-group {{ display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }}
+    .h-label {{ font-size: 1.5em; font-weight: normal; margin-bottom: 5px; opacity: 0.9; white-space: nowrap; }}
+    .h-value {{ font-size: 5em; font-weight: bold; line-height: 1; }}
+
+    .line-bar-container {{ grid-column: 1 / span 2; width: 100%; padding: 0; margin: 0; }}
+    .line-bar {{
+        background: white;
+        padding: 5mm 10mm;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        border-radius: 20px;
+        width: 100%;
+        justify-content: flex-start;
+    }}
+    .lb-item {{ display: flex; align-items: center; margin-right: 25px; }}
+    .bus-icon {{ width: 28px; height: 28px; margin-right: 10px; }}
+    .lb-num {{ font-size: 2em; font-weight: bold; margin-right: 10px; }}
+    .lb-dest {{ font-size: 1.2em; font-weight: 300; color: #000; text-transform: uppercase; }}
+
+    .left-col {{
+        grid-column: 1;
+        grid-row: 3;
+        background: white;
+        border-radius: 30px;
+        padding: 20mm 20mm 5mm 20mm;
+        display: block;
+        overflow: hidden;
+        align-self: start;
+        height: auto;
+    }}
+
+    .sc-title {{
+        font-size: 3em;
+        font-weight: bold;
+        border-bottom: 4px solid black;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        margin-top: 20px;
+        color: black;
+    }}
+    .sc-title .en {{ font-weight: normal; color: black; font-size: 0.7em; margin-left: 10px; }}
+
+    .sc-clarification {{
+        display: flex;
+        align-items: baseline;
+        margin-bottom: 10px;
+        color: #666;
+        font-size: 0.8em;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 5px;
+    }}
+    .sc-c-item {{ margin-right: 0px; }}
+    .sc-c-item .en {{ font-size: 0.85em; color: #666; margin-left: 2px; }}
+
+    .sc-row {{
+        display: flex;
+        border-bottom: 1px solid #eee;
+        padding: 10px 20mm;
+        font-size: 1.8em;
+        margin-left: -20mm;
+        margin-right: -20mm;
+    }}
+    .sc-h {{ width: 3.5em; font-weight: bold; white-space: nowrap; flex-shrink: 0; }}
+    .sc-m {{
+        flex: 1;
+        display: grid;
+    }}
+    .time-group {{ white-space: nowrap; }}
+    .s-line {{ vertical-align: baseline; margin-left: 2px; color: #444; font-size: 1.0em; }}
+
+    .right-col {{
+        grid-column: 2;
+        grid-row: 3;
+        display: flex;
+        flex-direction: column;
+        gap: {self.config['layout_gap_mm']}mm;
+        overflow: hidden;
+        align-self: start;
+        height: auto;
+        min-height: 0;
+    }}
+
+    .map-box {{
+        height: {map_h_mm}mm;
+        background-color: {self.config['map_bg_color']};
+        border-radius: 30px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        flex-shrink: 0;
+        width: 100%;
+    }}
+    .map-box svg {{ display: block; }}
+
+    .tree-container {{
+        background: white;
+        border-radius: 30px;
+        padding: 0mm;
+        padding-top: 85px;
+        padding-bottom: 0px;
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+        margin: 0;
+        width: 100%;
+        height: {self.config['tree_box_h_mm']}mm;
+        flex: none;
+        min-height: 0;
+    }}
+    .tree-title {{
+        position: absolute;
+        top: 20px;
+        left: 30px;
+        font-size: 2.5em;
+        font-weight: bold;
+        z-index: 10;
+        background: rgba(255,255,255,0.85);
+        padding: 5px 10px;
+        border-radius: 10px;
+    }}
+    .tree-title .en {{ font-weight: normal; color: #444; font-size: 0.8em; }}
+    .tree-subtitle {{ font-size: 0.4em; font-weight: normal; margin-top: 5px; line-height: 1.2; color: #333; }}
+
+    .tree-container svg {{
+        width: 100%;
+        height: 100%;
+        display: block;
+    }}
+
+    .alareuna-row {{
+        display: block;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        position: relative;
+    }}
+    .alareuna-row svg {{
+        display: block;
+        width: 100%;
+        height: auto;
+    }}
+
+    .qr-group {{ 
+        display: flex; 
+        position: absolute;
+        bottom: 30px;
+        right: 20px;
+        z-index: 50;
+    }}
+    .qr-box {{
+        background-color: white;
+        padding: 20px;
+        border-radius: 30px;
+        width: 240px;
+        height: 240px;
+    }}
+    .qr-img {{ width: 100%; height: 100%; display: block; }}
+
+    .footer {{
+        grid-column: 2;
+        grid-row: 4;
+        display: flex;
+        justify-content: flex-end; 
+        align-items: flex-end;
+        gap: 80px;
+        margin-right: 20mm;
+        margin-bottom: 20mm;
+    }}
+    .logo-box {{
+        background-color: transparent; 
+        padding: 20px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 240px;
+    }}
+    .f-logo svg {{ width: 500px; height: auto; display: block; }}
+
+</style>
+</head>
+<body>
+    <div class="crop-layer">
+        <svg viewBox="0 0 {self.page_w_mm} {self.page_h_mm}" xmlns="http://www.w3.org/2000/svg">
+            {crop_lines}
+        </svg>
+    </div>
+
+    <div class="poster-container">
+        <div class="header">
+            <div class="header-left">
+                <div class="h-stop-name">{stop_name}</div>
+                <div style="font-size: 1.5em; margin-bottom: 2px; margin-top: 15px; font-weight: normal; color: white;">
+                    Aikataulut ovat voimassa | <span class="en" style="color: white;">Timetables valid</span>
+                </div>
+                <div class="h-date">{date_label}</div>
+            </div>
+            <div class="header-right">
+                <div class="h-info-group">
+                    <div class="h-label" style="color: white;">Vyöhyke <span class="en" style="color: white;">| Zone</span></div>
+                    <div class="h-value">{stop_zone}</div>
+                </div>
+                {stop_number_html}
+            </div>
+        </div>
+
+        <div class="line-bar-container">
+            <div class="line-bar">{line_bar_html}</div>
+        </div>
+
+        <div class="left-col">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+                <div style="font-size: 4em; font-weight: bold; color: black;">
+                    Pysäkkiaikataulu
+                    <span class="en" style="font-weight: normal; font-size: 0.7em; color: black;">Stop timetable</span>
+                </div>
+                <div style="font-size: 1.2em; color: #333;">
+                    Ajat ovat arvioaikoja | <span class="en">Times are estimates</span>
+                </div>
+            </div>
+            {sched_html}
+        </div>
+
+        <div class="right-col">
+            <div class="map-box">
+                <svg width="100%" height="100%" viewBox="0 0 {map_w_mm} {map_h_mm}" preserveAspectRatio="xMidYMid slice">
+                    {map_svg_content}
+                </svg>
+            </div>
+
+            <div class="tree-container">
+                <div class="tree-title">
+                    Linjojen reitit <span class="en">Routes</span>
+                    <div class="tree-subtitle">Listassa näkyvissä 10 seuraavaa pysäkkiä sekä päätepysäkki</div>
+                </div>
+                <svg viewBox="{self.tree_viewbox}" preserveAspectRatio="xMidYMin meet">
+                    {tree_svg_content}
+                </svg>
+            </div>
             
-            with open(self.template_path, "r", encoding="utf-8") as tf:
-                html = tf.read()
-
-            replacements = {
-                "{{ PAGE_W_MM }}": str(self.page_w_mm),
-                "{{ PAGE_H_MM }}": str(self.page_h_mm),
-                "{{ TRIM_W_MM }}": str(self.trim_w_mm),
-                "{{ TRIM_H_MM }}": str(self.trim_h_mm),
-                "{{ BLEED_MM }}": str(self.bleed_mm),
-                "{{ COLOR }}": self.config['color'],
-                "{{ LAYOUT_GAP_MM }}": str(self.config['layout_gap_mm']),
-                "{{ MAP_BG_COLOR }}": self.config['map_bg_color'],
-                "{{ TREE_BOX_H_MM }}": str(self.config['tree_box_h_mm']),
-                "{{ CROP_LINES }}": crop_lines,
-                "{{ STOP_NAME }}": stop_name,
-                "{{ DATE_LABEL }}": date_label,
-                "{{ STOP_ZONE }}": stop_zone,
-                "{{ STOP_NUMBER_HTML }}": stop_number_html,
-                "{{ LINE_BAR_HTML }}": line_bar_html,
-                "{{ SCHED_HTML }}": sched_html,
-                "{{ MAP_W_MM }}": str(map_w_mm),
-                "{{ MAP_H_MM }}": str(map_h_mm),
-                "{{ MAP_SVG_CONTENT }}": map_svg_content,
-                "{{ TREE_VIEWBOX }}": self.tree_viewbox,
-                "{{ TREE_SVG_CONTENT }}": tree_svg_content,
-                "{{ ALAREUNA_SVG }}": alareuna_svg_inline,
-                "{{ QR_IMG_URL }}": qr_img_url,
-                "{{ LOGO_SVG }}": logo_svg_inline,
-            }
-
-            for tag, value in replacements.items():
-                html = html.replace(tag, value)
+            <div class="alareuna-row">
+                {alareuna_svg_inline}
+                <div class="qr-group">
+                    <div class="qr-box"><img class="qr-img" src="{qr_img_url}"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="logo-box">
+                <div class="f-logo">
+                    {logo_svg_inline}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
 
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(html)
@@ -1891,33 +2216,46 @@ class GTFSIntegratedPoster:
                 "--virtual-time-budget=10000",
                 html_path,
             ]
-            # MUTE DBUS/CHROME ERRORS
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                cmd, 
+                check=True, 
+                stdout=subprocess.DEVNULL, 
+                stderr=subprocess.DEVNULL
+            )
             print(f"✅ Generated PDF Poster: {os.path.abspath(pdf_path)}")
         except Exception as e:
             print(f"❌ PDF Conversion Failed: {e}")
 
 
 if __name__ == "__main__":
-    
-    # Smart Fallback Function for initial load
-    def find_file(filename):
+    def find_file_main(filename):
+        """Smart path resolver for Colab and local execution."""
         if not filename: return filename
-        paths = [filename, f"/content/{filename}", os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)]
+        paths = [
+            filename,
+            f"/content/{filename}",
+            os.path.join("assets", filename),
+            os.path.join("/content/assets", filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+        ]
         for p in paths:
-            if os.path.exists(p): return p
+            if os.path.exists(p):
+                return p
         return filename
 
-    gtfs_input = input("Enter GTFS zip filename (default: gtfs.zip): ").strip() or "gtfs.zip"
-    gtfs_file = find_file(gtfs_input)
+    gtfs_input = input("Enter GTFS zip filename (default: 218.zip): ").strip() or "218.zip"
+    routes_input = input("Enter Routes GPKG filename (default: rjuli.gpkg): ").strip() or "rjuli.gpkg"
+    water_input = input("Enter Water GeoJSON filename (default: blue_areas_kotka_hamina_pyhtaa.geojson): ").strip() or "blue_areas_kotka_hamina_pyhtaa.geojson"
 
-    routes_input = input("Enter routes GeoPackage filename (default: rjuli.gpkg): ").strip() or "rjuli.gpkg"
-    routes_file = find_file(routes_input)
+    gtfs_file = find_file_main(gtfs_input)
+    routes_file = find_file_main(routes_input)
+    water_file = find_file_main(water_input)
 
-    if os.path.exists(gtfs_file):
-        gen = GTFSIntegratedPoster(gtfs_file, routes_file)
+    if gtfs_file and os.path.exists(gtfs_file):
+        print(f"Found GTFS file at: {gtfs_file}")
+        gen = GTFSIntegratedPoster(gtfs_file, routes_file, water_file)
         
-        stop_ids_input = input("Enter stop numbers separated by comma (e.g., 155766,155631): ").strip()
+        stop_ids_input = input("Enter stop numbers separated by comma (e.g., 155766): ").strip()
         
         if stop_ids_input:
             date_label = input("Enter date label (default: 10.8.2025–31.5.2026): ").strip() or "10.8.2025–31.5.2026"
@@ -1939,10 +2277,10 @@ if __name__ == "__main__":
                         zf.write(pdf, os.path.basename(pdf))
                 print(f"\n📦 All posters zipped into: {zip_filename}")
                 
-                # Graceful download
                 try:
                     from google.colab import files
                     import IPython
+                    
                     ipython = IPython.get_ipython()
                     if ipython is not None and getattr(ipython, 'kernel', None) is not None:
                         print(f"Triggering download for {zip_filename}...")
@@ -1950,6 +2288,8 @@ if __name__ == "__main__":
                     else:
                         print("Interactive auto-download skipped (running in script mode).")
                 except ImportError:
-                    print("Not running in Colab, zip saved locally.")
+                    print(f"Not running in Colab. Find '{zip_filename}' in your working directory.")
+        else:
+            print("No stop IDs provided.")
     else:
-        print(f"GTFS zip '{gtfs_input}' not found. Please upload it or ensure it is in the same directory.")
+        print(f"GTFS zip '{gtfs_input}' not found. Please ensure it is uploaded or placed in the correct directory.")
