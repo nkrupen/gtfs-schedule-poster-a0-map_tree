@@ -52,7 +52,7 @@ gtfs-schedule-poster/
     └── alareuna.svg                             <-- Bottom graphic/banner
 ```
 
-> **Important:** Map and GTFS files are large and are not included in the repository. You must download the GTFS feed and map layers for your target transit agency and place them in the root directory.
+> **Important:** Water body and GTFS files are large and are not included in the repository. You must download the GTFS feed and water body layers for your target transit agency / area and place them in the root directory. Ask a project maintainer if you need help e.g. with obtaining a .geojson file for water bodies for your area.
 > 
 > If using Google Colab, you can simply upload these files directly to the `/content` folder.
 
