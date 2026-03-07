@@ -12,6 +12,7 @@ import warnings
 from datetime import datetime, timedelta
 import subprocess
 import glob
+import sys
 
 # --- OSMNX IMPORT ---
 try:
@@ -1166,7 +1167,6 @@ class GTFSIntegratedPoster:
         final_html_map = {}
         total_rows_count = 0
 
-        # UPDATED: 'Hour' and 'min / route' are stacked under their Finnish counterparts and aligned
         clarification_header = """
         <div class="sc-clarification" style="display: flex; align-items: flex-start;">
             <div class="sc-c-item" style="width: 3.5em; flex-shrink: 0; display: flex; flex-direction: column;">
@@ -1194,13 +1194,10 @@ class GTFSIntegratedPoster:
                 base_style = "display: inline-block; padding: 2px 6px; border-radius: 4px; margin: 0 2px; border: 1px solid transparent;"
                 text_color = "black"
                 
-                # UPDATED background and font color logic
                 if e["type"] == "SCHOOL":
-                    # Lighter background for schedule boxes
                     style_str = base_style + "background-color: #F0F8FF; border-color: #BBDEFB; color: #0D47A1;"
                     text_color = "#0D47A1"
                 elif e["type"] == "HOLIDAY":
-                    # Lighter background for schedule boxes
                     style_str = base_style + "background-color: #FFF3E0; border-color: #FFE0B2; color: #CC4700;"
                     text_color = "#CC4700"
                 else:
@@ -1504,14 +1501,12 @@ class GTFSIntegratedPoster:
 
         # 2. NEW LOGIC: Align leftmost column (70% rule)
         min_x = min(n["x"] for n in visible_nodes)
-        # Group nodes in the leftmost column (using a small 5px tolerance for floating point)
         leftmost_nodes = [n for n in visible_nodes if abs(n["x"] - min_x) < 5.0]
         
         if leftmost_nodes:
             start_count = sum(1 for n in leftmost_nodes if n.get("text_anchor", "start") == "start")
             ratio = start_count / len(leftmost_nodes)
             
-            # If 70% or more are on the right ("start"), force ALL of them to the right
             if ratio >= 0.70:
                 for n in leftmost_nodes:
                     n["text_anchor"] = "start"
@@ -1566,13 +1561,11 @@ class GTFSIntegratedPoster:
         stroke_path = 5 * font_scale
         stroke_circ = 4 * font_scale
 
-        # UPDATED: Increased Olet Tässä text size
         f_main = 80 * font_scale
         f_sub = 45 * font_scale
 
         f_node = 90 * font_scale
         
-        # UPDATED: Increased line height for stop names wrapping
         line_h = 85 * font_scale
         text_x_offset = 60 * font_scale
 
@@ -1714,10 +1707,7 @@ class GTFSIntegratedPoster:
     # ----------------------------
     # POSTER GENERATION
     # ----------------------------
-    def generate_poster(self, stop_id, date_label, output_file):
-        school_week_start = datetime(2025, 12, 8)
-        holiday_week_start = datetime(2025, 10, 20)
-
+    def generate_poster(self, stop_id, date_label, output_file, school_week_start, holiday_week_start):
         stop_name, stop_code, stop_zone = self.get_stop_info(stop_id)
         
         self.config["color"] = "#3069b3"
@@ -1739,7 +1729,8 @@ class GTFSIntegratedPoster:
             map_w_mm = int(right_col_w_mm - 60)
             map_h_mm = 350
 
-            map_svg_content = self._generate_map_svg(stop_id, map_w_mm, map_h_mm, "2025-12-08")
+            # Uses the provided school week date formatted as YYYY-MM-DD for the map
+            map_svg_content = self._generate_map_svg(stop_id, map_w_mm, map_h_mm, school_week_start.strftime("%Y-%m-%d"))
             school_trips = self._get_active_trips_for_week(stop_id, school_week_start, school_week_start + timedelta(days=6))
             root_tree = self._build_route_tree(stop_id, school_trips)
 
@@ -1829,14 +1820,12 @@ class GTFSIntegratedPoster:
             
             stop_number_html = ""
             if stop_zone != "B":
-                # --- UPDATE: Added color white to 'Stop number' span ---
                 stop_number_html = f"""
                 <div class="h-info-group">
                     <div class="h-label" style="color: white;">Pysäkkinumero <span class="en" style="color: white;">| Stop number</span></div>
                     <div class="h-value">{display_code}</div>
                 </div>
                 """
-                # -----------------------------------------------------
 
             html = f"""<!DOCTYPE html>
 <html>
@@ -2243,9 +2232,10 @@ if __name__ == "__main__":
                 return p
         return filename
 
-    gtfs_input = input("Enter GTFS zip filename (default: 218.zip): ").strip() or "218.zip"
-    routes_input = input("Enter Routes GPKG filename (default: rjuli.gpkg): ").strip() or "rjuli.gpkg"
-    water_input = input("Enter Water GeoJSON filename (default: blue_areas_kotka_hamina_pyhtaa.geojson): ").strip() or "blue_areas_kotka_hamina_pyhtaa.geojson"
+    print("--- File Setup ---")
+    gtfs_input = input("Enter GTFS zip filename (default: gtfs.zip): ").strip() or "gtfs.zip"
+    routes_input = input("Enter Routes GPKG filename (default: routes.gpkg): ").strip() or "routes.gpkg"
+    water_input = input("Enter Water GeoJSON filename (default: blue_areas.geojson): ").strip() or "blue_areas.geojson"
 
     gtfs_file = find_file_main(gtfs_input)
     routes_file = find_file_main(routes_input)
@@ -2255,10 +2245,23 @@ if __name__ == "__main__":
         print(f"Found GTFS file at: {gtfs_file}")
         gen = GTFSIntegratedPoster(gtfs_file, routes_file, water_file)
         
+        print("\n--- Timetable Configuration ---")
         stop_ids_input = input("Enter stop numbers separated by comma (e.g., 155766): ").strip()
         
         if stop_ids_input:
-            date_label = input("Enter date label (default: 10.8.2025–31.5.2026): ").strip() or "10.8.2025–31.5.2026"
+            date_label = input("Enter printed date label (default: 10.8.2025–31.5.2026): ").strip() or "10.8.2025–31.5.2026"
+            
+            # --- NEW DATE PROMPTS ---
+            school_date_input = input("Enter a normal school week start date (YYYY-MM-DD) [default: 2025-12-08]: ").strip() or "2025-12-08"
+            holiday_date_input = input("Enter a holiday week start date (YYYY-MM-DD) [default: 2025-10-20]: ").strip() or "2025-10-20"
+            
+            try:
+                school_week_start = datetime.strptime(school_date_input, "%Y-%m-%d")
+                holiday_week_start = datetime.strptime(holiday_date_input, "%Y-%m-%d")
+            except ValueError:
+                print("❌ Invalid date format. Please use YYYY-MM-DD.")
+                sys.exit(1)
+            # ------------------------
             
             stop_ids = [s.strip() for s in stop_ids_input.split(",")]
             generated_pdfs = []
@@ -2266,7 +2269,10 @@ if __name__ == "__main__":
             for stop_id in stop_ids:
                 if not stop_id: continue
                 print(f"\n--- Processing stop {stop_id} ---")
-                pdf_file = gen.generate_poster(stop_id, date_label, f"{stop_id}.html")
+                
+                # Pass the dates into the generate_poster method
+                pdf_file = gen.generate_poster(stop_id, date_label, f"{stop_id}.html", school_week_start, holiday_week_start)
+                
                 if pdf_file and os.path.exists(pdf_file):
                     generated_pdfs.append(pdf_file)
             
