@@ -182,7 +182,7 @@ The script will:
 3. Bundle the PDFs into `posters.zip`.
 
 ### ⚠️ Note on Manual Adjustments
-Because bus stops vary wildly in the density of their schedules, map surroundings, and route complexities, the automated layout might occasionally result in overlapping text or slightly misaligned SVG elements. 
+Because bus stops vary wildly in the density of their schedules, map surroundings, and route complexities, the automated layout might occasionally result in overlapping text or slightly misaligned SVG elements. PDF generation can take about 30-120 seconds.
 
 **Finalizing the PDF schedule poster may require a bit of manual work.** It is highly recommended to open the generated PDFs in a vector-capable PDF editor (such as PDF-XChange Editor, Adobe Illustrator, or Acrobat) to make minor typographical tweaks, nudge overlapping route tree labels, or adjust map pins before sending them to the printers.
 
