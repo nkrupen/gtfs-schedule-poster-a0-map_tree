@@ -1,170 +1,349 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-	<title></title>
-	<meta name="generator" content="LibreOffice 25.8.4.2 (Linux)"/>
-	<meta name="created" content="00:00:00"/>
-	<meta name="changed" content="00:00:00"/>
-	<style type="text/css">
-		@page { size: 8.27in 11.69in; margin: 0.79in }
-		p { margin-bottom: 0.1in; line-height: 115%; background: transparent }
-		pre { font-size: 10pt; font-family: "Liberation Mono", monospace; background: transparent }
-	</style>
-</head>
-<body lang="en-US" link="#000080" vlink="#800000" dir="ltr"><pre>&lt;!DOCTYPE html&gt;
-&lt;html&gt;
-&lt;head&gt;
-&lt;meta charset=&quot;UTF-8&quot;&gt;
-&lt;style&gt;
-    @page { size: {{ page_w_mm }}mm {{ page_h_mm }}mm; margin: 0; }
-    body {
-        margin: 0; padding: 0;
-        font-family: {{ font_main }};
-        background-color: {{ bg_color }};
+<meta charset="UTF-8">
+<style>
+    @page {
+        size: {{ PAGE_W_MM }}mm {{ PAGE_H_MM }}mm;
+        margin: 0;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html, body {
+        width: {{ PAGE_W_MM }}mm;
+        height: {{ PAGE_H_MM }}mm;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background-color: {{ COLOR }};
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
+
+    @media print {
+        html, body {
+            width: {{ PAGE_W_MM }}mm !important;
+            height: {{ PAGE_H_MM }}mm !important;
+            overflow: hidden !important;
+        }
+    }
+
+    .crop-layer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: {{ PAGE_W_MM }}mm;
+        height: {{ PAGE_H_MM }}mm;
+        pointer-events: none;
+        z-index: 9999;
+    }
+    .crop-layer svg {
+        display: block;
+        width: {{ PAGE_W_MM }}mm;
+        height: {{ PAGE_H_MM }}mm;
+    }
+
     .poster-container {
-        width: {{ page_w_mm }}mm; height: {{ page_h_mm }}mm;
-        display: flex; flex-direction: column; overflow: hidden;
+        position: fixed;
+        top: {{ BLEED_MM }}mm;
+        left: {{ BLEED_MM }}mm;
+        width: {{ TRIM_W_MM }}mm;
+        height: {{ TRIM_H_MM }}mm;
+
+        display: grid;
+        grid-template-columns: 60fr 40fr;
+        grid-template-rows: auto auto minmax(0, 1fr) 200mm;
+
+        padding: {{ LAYOUT_GAP_MM }}mm;
+        gap: {{ LAYOUT_GAP_MM }}mm;
+
+        overflow: hidden;
+        background: {{ COLOR }};
     }
-    .en { color: #000; }
-    
-    /* ---------- HEADER ---------- */
+
+    .en { font-style: italic; color: #444; }
+
     .header {
-        flex: 0 0 auto; background-color: {{ bg_color }};
-        padding: 15mm 20mm 5mm 20mm; display: flex;
-        justify-content: space-between; align-items: flex-start; color: white;
+        grid-column: 1 / span 2;
+        background-color: {{ COLOR }};
+        padding: 15mm 20mm 5mm 20mm;
+        color: white;
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
     }
-    .header-left { flex: 1; min-width: 0; padding-left: 15mm; }
-    .h-stop-name { font-size: 6.2em; font-weight: bold; color: white; line-height: 1; letter-spacing: -0.5px; overflow-wrap: anywhere; }
-    .h-valid-combined { font-size: 3em; margin-top: 15px; font-weight: 300; color: white; }
-    .h-valid-combined .en { color: rgba(255,255,255,0.85); }
-    .header-right { display: flex; align-items: center; gap: 20mm; text-align: center; flex: 0 0 auto; }
-    .header-info-wrapper { display: flex; gap: 15mm; text-align: center; }
+    .header-left { display: flex; flex-direction: column; }
+    .h-stop-name { font-size: 6em; font-weight: bold; color: white; line-height: 1; }
+    .h-date { font-size: 3em; margin-top: 5px; font-weight: normal; color: white; font-style: normal; }
+
+    .header-right {
+        display: flex;
+        align-items: baseline;
+        gap: 60px;
+        text-align: center;
+    }
     .h-info-group { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
-    .h-label { font-size: 2.2em; font-weight: normal; margin-bottom: 8px; opacity: 0.95; white-space: nowrap; color: white; }
-    .h-label .en { color: rgba(255,255,255,0.85); }
-    .h-value { font-size: 5.6em; font-weight: bold; line-height: 0.95; color: white; white-space: nowrap; }
-    .header-logo { display: block; height: 40mm; width: auto; }
-    .header-logo svg, .header-logo img { height: 100%; width: auto; display: block; }
-    .header-logo svg { fill: white; }
+    .h-label { font-size: 1.5em; font-weight: normal; margin-bottom: 5px; opacity: 0.9; white-space: nowrap; }
+    .h-value { font-size: 5em; font-weight: bold; line-height: 1; }
 
-    /* ---------- LINE BAR ---------- */
-    .line-bar-container { flex: 0 0 auto; padding: 0 20mm; margin-bottom: 10mm; }
-    .line-bar { background: white; padding: 12mm 15mm; display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start; border-radius: 30px; }
-    .lb-item { display: flex; align-items: center; gap: 14px; margin-right: 40px; max-width: 100%; }
-    .bus-icon-wrap { color: {{ bg_color }}; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; }
-    .bus-icon { width: 50px; height: 50px; display: block; }
-    .lb-num { font-size: 3em; font-weight: bold; margin-right: 0; flex: 0 0 auto; }
-    .lb-dest { font-size: 2em; font-weight: 300; color: #000; text-transform: uppercase; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.1; max-width: 760px; }
+    .line-bar-container { grid-column: 1 / span 2; width: 100%; padding: 0; margin: 0; }
+    .line-bar {
+        background: white;
+        padding: 5mm 10mm;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        border-radius: 20px;
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .lb-item { display: flex; align-items: center; margin-right: 25px; }
+    .bus-icon { width: 28px; height: 28px; margin-right: 10px; }
+    .lb-num { font-size: 2em; font-weight: bold; margin-right: 10px; }
+    .lb-dest { font-size: 1.2em; font-weight: 300; color: #000; text-transform: uppercase; }
 
-    /* ---------- MAIN CONTENT LAYOUT ---------- */
-    .content-wrap { flex: 1 1 auto; display: flex; flex-direction: column; padding: 0 20mm 20mm 20mm; overflow: hidden; }
-    .unified-box { background: white; border-radius: 30px; padding: 15mm; padding-bottom: 25mm; display: flex; flex-direction: column; flex: 1; }
-    .monfri-box { margin-bottom: 0; padding-bottom: 10mm; background: transparent; }
-    .bottom-row { display: flex; gap: 20mm; align-items: stretch; overflow: hidden; margin-top: 0; flex: 1; }
-    .weekend-box { flex: 1; min-width: 0; background: transparent; }
-    .right-col { flex: 1; display: flex; flex-direction: column; gap: 0; overflow: hidden; height: 100%; justify-content: flex-start; }
-    .spacer { flex-grow: 1; min-height: 0; }
-    .alareuna-box { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; padding: 0; background: transparent; margin-top: 20px; }
-    .alareuna-row { display: block; width: 100%; margin: 0; padding: 0; position: relative; }
-    .alareuna-row svg { display: block; width: 100%; height: auto; }
-    .qr-group { position: absolute; bottom: 30px; right: 20px; z-index: 50; }
-    .qr-box { background-color: white; padding: 20px; border-radius: 30px; width: 240px; height: 240px; }
+    .left-col {
+        grid-column: 1;
+        grid-row: 3;
+        background: white;
+        border-radius: 30px;
+        padding: 20mm 20mm 5mm 20mm;
+        display: block;
+        overflow: hidden;
+        align-self: start;
+        height: auto;
+    }
+
+    .sc-title {
+        font-size: 3em;
+        font-weight: bold;
+        border-bottom: 4px solid black;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        margin-top: 20px;
+        color: black;
+    }
+    .sc-title .en { font-weight: normal; color: black; font-size: 0.7em; margin-left: 10px; }
+
+    .sc-clarification {
+        display: flex;
+        align-items: baseline;
+        margin-bottom: 10px;
+        color: #666;
+        font-size: 0.8em;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 5px;
+    }
+    .sc-c-item { margin-right: 0px; }
+    .sc-c-item .en { font-size: 0.85em; color: #666; margin-left: 2px; }
+
+    .sc-row {
+        display: flex;
+        border-bottom: 1px solid #eee;
+        padding: 10px 20mm;
+        font-size: 1.8em;
+        margin-left: -20mm;
+        margin-right: -20mm;
+    }
+    .sc-h { width: 3.5em; font-weight: bold; white-space: nowrap; flex-shrink: 0; }
+    .sc-m {
+        flex: 1;
+        display: grid;
+    }
+    .time-group { white-space: nowrap; }
+    .s-line { vertical-align: baseline; margin-left: 2px; color: #444; font-size: 1.0em; }
+
+    .right-col {
+        grid-column: 2;
+        grid-row: 3;
+        display: flex;
+        flex-direction: column;
+        gap: {{ LAYOUT_GAP_MM }}mm;
+        overflow: hidden;
+        align-self: start;
+        height: auto;
+        min-height: 0;
+    }
+
+    .map-box {
+        height: {{ MAP_H_MM }}mm;
+        background-color: {{ MAP_BG_COLOR }};
+        border-radius: 30px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        flex-shrink: 0;
+        width: 100%;
+    }
+    .map-box svg { display: block; }
+
+    .tree-container {
+        background: white;
+        border-radius: 30px;
+        padding: 0mm;
+        padding-top: 85px;
+        padding-bottom: 0px;
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+        margin: 0;
+        width: 100%;
+        height: {{ TREE_BOX_H_MM }}mm;
+        flex: none;
+        min-height: 0;
+    }
+    .tree-title {
+        position: absolute;
+        top: 20px;
+        left: 30px;
+        font-size: 2.5em;
+        font-weight: bold;
+        z-index: 10;
+        background: rgba(255,255,255,0.85);
+        padding: 5px 10px;
+        border-radius: 10px;
+    }
+    .tree-title .en { font-weight: normal; color: #444; font-size: 0.8em; }
+    .tree-subtitle { font-size: 0.4em; font-weight: normal; margin-top: 5px; line-height: 1.2; color: #333; }
+
+    .tree-container svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    .alareuna-row {
+        display: block;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        position: relative;
+    }
+    .alareuna-row svg {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .qr-group { 
+        display: flex; 
+        position: absolute;
+        bottom: 30px;
+        right: 20px;
+        z-index: 50;
+    }
+    .qr-box {
+        background-color: white;
+        padding: 20px;
+        border-radius: 30px;
+        width: 240px;
+        height: 240px;
+    }
     .qr-img { width: 100%; height: 100%; display: block; }
 
-    /* ---------- SCHEDULE ---------- */
-    .sc-block { margin-bottom: {{ v_margin }}; break-inside: avoid; }
-    .sc-title { font-size: {{ font_size }}; font-weight: bold; border-bottom: 4px solid black; padding-bottom: 8px; margin-bottom: {{ v_margin }}; break-after: avoid; }
-    .sc-title .en { font-weight: normal; color: #000; font-size: 1em; margin-left: 10px; }
-    .sc-header { border-bottom: 3px solid black; font-weight: bold; background-color: white !important; align-items: flex-end; padding-bottom: 6px; font-size: calc({{ header_font_size }} * 1.15) !important; }
-    .sc-row { display: flex; border-bottom: 1px solid #ddd; padding: 0; font-size: {{ font_size }}; line-height: {{ line_height }}; page-break-inside: avoid; break-inside: avoid; width: 100%; align-items: stretch; }
-    .sc-row:nth-child(odd):not(.sc-header) { background-color: #f2f2f2; }
-    .sc-h { width: 7.0em; font-weight: bold; white-space: nowrap; flex-shrink: 0; background-color: transparent; color: black; padding: 4px 6px; display: flex; align-items: center; justify-content: flex-start; }
-    .sc-m { flex: 1; padding: 4px 0 4px 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 0.8em; background-color: transparent; }
-    .time-group { white-space: nowrap; display: inline-block; }
-    .s-line { font-size: 1.0em; color: #000; vertical-align: middle; margin-right: 2px; margin-left: 2px; }
+    .footer {
+        grid-column: 2;
+        grid-row: 4;
+        display: flex;
+        justify-content: flex-end; 
+        align-items: flex-end;
+        gap: 80px;
+        margin-right: 20mm;
+        margin-bottom: 20mm;
+    }
+    .logo-box {
+        background-color: transparent; 
+        padding: 20px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 240px;
+    }
+    .f-logo svg { width: 500px; height: auto; display: block; }
 
-    /* ---------- LEGEND ---------- */
-    .legend-container { margin-top: 25px; font-size: 2.1em; color: #333; line-height: 1.3; column-count: 2; column-gap: 20mm; width: 100%; break-inside: avoid; }
-    .legend-item { break-inside: avoid; margin-bottom: 5px; }
-    .legend-badges { margin-top: 10px; }
-    .legend-note { margin-top: 6px; }
+</style>
+</head>
+<body>
+    <div class="crop-layer">
+        <svg viewBox="0 0 {{ PAGE_W_MM }} {{ PAGE_H_MM }}" xmlns="http://www.w3.org/2000/svg">
+            {{ CROP_LINES }}
+        </svg>
+    </div>
 
-    .section-title { font-size: 3.8em; font-weight: bold; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: baseline; gap: 20px; }
-    .section-title .en { font-weight: normal; color: #000; font-size: 0.7em; }
-&lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
-    &lt;div class=&quot;poster-container&quot;&gt;
-        &lt;div class=&quot;header&quot;&gt;
-            &lt;div class=&quot;header-left&quot;&gt;
-                &lt;div class=&quot;h-stop-name&quot;&gt;{{ stop_name }}&lt;/div&gt;
-                &lt;div class=&quot;h-valid-combined&quot;&gt;Aikataulut ovat voimassa | &lt;span class=&quot;en&quot;&gt;&lt;i&gt;Timetables valid&lt;/i&gt;&lt;/span&gt; {{ date_label }}&lt;/div&gt;
-            &lt;/div&gt;
+    <div class="poster-container">
+        <div class="header">
+            <div class="header-left">
+                <div class="h-stop-name">{{ STOP_NAME }}</div>
+                <div style="font-size: 1.5em; margin-bottom: 2px; margin-top: 15px; font-weight: normal; color: white;">
+                    Aikataulut ovat voimassa | <span class="en" style="color: white;">Timetables valid</span>
+                </div>
+                <div class="h-date">{{ DATE_LABEL }}</div>
+            </div>
+            <div class="header-right">
+                <div class="h-info-group">
+                    <div class="h-label" style="color: white;">Vyöhyke <span class="en" style="color: white;">| Zone</span></div>
+                    <div class="h-value">{{ STOP_ZONE }}</div>
+                </div>
+                {{ STOP_NUMBER_HTML }}
+            </div>
+        </div>
 
-            &lt;div class=&quot;header-right&quot;&gt;
-                &lt;div class=&quot;header-info-wrapper&quot;&gt;
-                    &lt;div class=&quot;h-info-group&quot;&gt;
-                        &lt;div class=&quot;h-label&quot;&gt;Vyöhyke &lt;span class=&quot;en&quot;&gt;| &lt;i&gt;Zone&lt;/i&gt;&lt;/span&gt;&lt;/div&gt;
-                        &lt;div class=&quot;h-value&quot;&gt;{{ stop_zone }}&lt;/div&gt;
-                    &lt;/div&gt;
-                    {{ stop_number_html }}
-                &lt;/div&gt;
-                &lt;div class=&quot;header-logo&quot;&gt;
-                    {{ logo_html }}
-                &lt;/div&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
+        <div class="line-bar-container">
+            <div class="line-bar">{{ LINE_BAR_HTML }}</div>
+        </div>
 
-        &lt;div class=&quot;line-bar-container&quot;&gt;
-            &lt;div class=&quot;line-bar&quot;&gt;{{ line_bar_html }}&lt;/div&gt;
-        &lt;/div&gt;
+        <div class="left-col">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+                <div style="font-size: 4em; font-weight: bold; color: black;">
+                    Pysäkkiaikataulu
+                    <span class="en" style="font-weight: normal; font-size: 0.7em; color: black;">Stop timetable</span>
+                </div>
+                <div style="font-size: 1.2em; color: #333;">
+                    Ajat ovat arvioaikoja | <span class="en">Times are estimates</span>
+                </div>
+            </div>
+            {{ SCHED_HTML }}
+        </div>
 
-        &lt;div class=&quot;content-wrap&quot;&gt;
-            &lt;div class=&quot;unified-box&quot;&gt;
+        <div class="right-col">
+            <div class="map-box">
+                <svg width="100%" height="100%" viewBox="0 0 {{ MAP_W_MM }} {{ MAP_H_MM }}" preserveAspectRatio="xMidYMid slice">
+                    {{ MAP_SVG_CONTENT }}
+                </svg>
+            </div>
 
-                &lt;div class=&quot;monfri-box&quot;&gt;
-                    &lt;div class=&quot;section-title&quot;&gt;
-                        &lt;div&gt;
-                            Pysäkkiaikataulu
-                            &lt;span class=&quot;en&quot;&gt;&lt;i&gt;Stop timetable&lt;/i&gt;&lt;/span&gt;
-                        &lt;/div&gt;
-                        &lt;div style=&quot;font-size: 0.7em; font-weight: normal; text-align: right;&quot;&gt;
-                            Ajat ovat arvioaikoja | &lt;span class=&quot;en&quot;&gt;&lt;i&gt;The times are estimates&lt;/i&gt;&lt;/span&gt;
-                        &lt;/div&gt;
-                    &lt;/div&gt;
-                    {{ monfri_html }}
-                    {{ legend_html }}
-                &lt;/div&gt;
-
-                &lt;div class=&quot;bottom-row&quot;&gt;
-                    &lt;div class=&quot;weekend-box&quot;&gt;
-                        {{ saturday_html }}
-                    &lt;/div&gt;
-
-                    &lt;div class=&quot;right-col&quot;&gt;
-                        {{ sunday_html }}
-                        &lt;div class=&quot;spacer&quot;&gt;&lt;/div&gt;
-                        &lt;div class=&quot;alareuna-box&quot;&gt;
-                            &lt;div class=&quot;alareuna-row&quot;&gt;
-                                {{ alareuna_svg_inline }}
-                                &lt;div class=&quot;qr-group&quot;&gt;
-                                    &lt;div class=&quot;qr-box&quot;&gt;
-                                        &lt;img class=&quot;qr-img&quot; src=&quot;{{ qr_img_url }}&quot; alt=&quot;QR&quot;&gt;
-                                    &lt;/div&gt;
-                                &lt;/div&gt;
-                            &lt;/div&gt;
-                        &lt;/div&gt;
-                    &lt;/div&gt;
-                &lt;/div&gt;
-
-            &lt;/div&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
-&lt;/body&gt;
-&lt;/html&gt;</pre>
+            <div class="tree-container">
+                <div class="tree-title">
+                    Linjojen reitit <span class="en">Routes</span>
+                    <div class="tree-subtitle">Listassa näkyvissä 10 seuraavaa pysäkkiä sekä päätepysäkki</div>
+                </div>
+                <svg viewBox="{{ TREE_VIEWBOX }}" preserveAspectRatio="xMidYMin meet">
+                    {{ TREE_SVG_CONTENT }}
+                </svg>
+            </div>
+            
+            <div class="alareuna-row">
+                {{ ALAREUNA_SVG }}
+                <div class="qr-group">
+                    <div class="qr-box"><img class="qr-img" src="{{ QR_IMG_URL }}"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="logo-box">
+                <div class="f-logo">
+                    {{ LOGO_SVG }}
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
