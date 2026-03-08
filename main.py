@@ -24,25 +24,13 @@ except ImportError:
 
 warnings.filterwarnings("ignore")
 
-# --- COLOR PALETTE DEFINITIONS ---
-COLOR_PALETTES = {
-    "kotka": {"primary": "#3069b3", "secondary": "#b00030"},
-    "helsinki": {"primary": "#007AC9", "secondary": "#00985F"},
-    "tampere": {"primary": "#1C57C9", "secondary": "#E5005B"},
-    "turku": {"primary": "#EDAC00", "secondary": "#000000"},
-    "default": {"primary": "#3069b3", "secondary": "#b00030"}
-}
-
 
 class GTFSIntegratedPoster:
-    def __init__(self, gtfs_path, routes_gpkg_path=None, water_geojson_path=None, theme="default"):
+    def __init__(self, gtfs_path, routes_gpkg_path=None, water_geojson_path=None, color_hex="#3069b3"):
         self.gtfs_path = self._find_file(gtfs_path)
         self.routes_gpkg_path = self._find_file(routes_gpkg_path)
         self.water_geojson_path = self._find_file(water_geojson_path)
         self.data = {}
-        
-        # Select the active palette based on the theme
-        palette = COLOR_PALETTES.get(theme.lower(), COLOR_PALETTES["default"])
 
         # --- Configuration (UPDATED DIMENSIONS) ---
         self.bleed_mm = 3
@@ -58,8 +46,7 @@ class GTFSIntegratedPoster:
         self.page_h_mm = self.trim_h_mm + (self.bleed_mm * 2)
 
         self.config = {
-            "color": palette["primary"],
-            "secondary_color": palette["secondary"],
+            "color": color_hex, 
             "page_w_mm": self.page_w_mm,
             "page_h_mm": self.page_h_mm,
             "font_main": "Arial, sans-serif",
@@ -1639,10 +1626,10 @@ class GTFSIntegratedPoster:
         p_cx, p_cy = sx, pin_center_y
         line_start_y = p_cy + r_main
         line_end_y = route_start_y
-        elems.append(f'<path d="M {p_cx},{line_start_y} L {p_cx},{line_end_y}" stroke="{self.config["secondary_color"]}" stroke-width="{stroke_main}"/>')
-        elems.append(f'<circle cx="{p_cx}" cy="{p_cy}" r="{r_main}" fill="{self.config["secondary_color"]}"/>')
+        elems.append(f'<path d="M {p_cx},{line_start_y} L {p_cx},{line_end_y}" stroke="#b00030" stroke-width="{stroke_main}"/>')
+        elems.append(f'<circle cx="{p_cx}" cy="{p_cy}" r="{r_main}" fill="#b00030"/>')
         head_cy = p_cy - (35 * font_scale)
-        elems.append(f'<circle cx="{p_cx}" cy="{head_cy}" r="{r_outer}" fill="{self.config["secondary_color"]}"/>')
+        elems.append(f'<circle cx="{p_cx}" cy="{head_cy}" r="{r_outer}" fill="#b00030"/>')
         elems.append(f'<circle cx="{p_cx}" cy="{head_cy}" r="{r_inner}" fill="white"/>')
 
         elems.append(
@@ -2257,12 +2244,12 @@ if __name__ == "__main__":
     routes_file = find_file_main(routes_input)
     water_file = find_file_main(water_input)
 
-    # --- NEW COLOR THEME PROMPT ---
-    theme_input = input("Enter color theme (kotka/helsinki/tampere/turku) [default: default]: ").strip().lower() or "default"
-
     if gtfs_file and os.path.exists(gtfs_file):
         print(f"Found GTFS file at: {gtfs_file}")
-        gen = GTFSIntegratedPoster(gtfs_file, routes_file, water_file, theme=theme_input)
+        
+        # Ask for the exact hex code to use
+        color_hex_input = input("Enter a HEX color code (e.g. #3069b3) [default: #3069b3]: ").strip() or "#3069b3"
+        gen = GTFSIntegratedPoster(gtfs_file, routes_file, water_file, color_hex=color_hex_input)
         
         print("\n--- Timetable Configuration ---")
         stop_ids_input = input("Enter stop numbers separated by comma (e.g., 155766): ").strip()
