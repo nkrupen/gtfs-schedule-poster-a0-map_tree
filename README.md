@@ -45,7 +45,7 @@ gtfs-schedule-poster/
 ├── requirements.txt
 ├── gtfs.zip                                      <-- Your GTFS data feed
 ├── routes.gpkg                                   <-- GeoPackage containing route line strings
-├── blue_areas.geojson       <-- GeoJSON for custom water bodies
+├── blue_areas.geojson       <-- GeoJSON for custom water bodies (can be derived using blue_areas_geojson_loader in the project folder)
 ├─ templates/                   <-- Required folder for HTML templates
 ├    └── poster_template.html
 └── assets/                                      <-- Required folder for graphics (or place in root)
@@ -53,7 +53,7 @@ gtfs-schedule-poster/
     └── alareuna.svg                             <-- Bottom graphic/banner
 ```
 
-> **Important:** Water body and GTFS files are large and are not included in the repository. You must download the GTFS feed and water body layers for your target transit agency / area and place them in the root directory. Ask a project maintainer if you need help e.g. with obtaining a .geojson file for water bodies for your area.
+> **Important:** Water body and GTFS files are large and are not included in the repository. You must download the GTFS feed and water body layers for your target transit agency / area and place them in the root directory. Ask a project maintainer if you need help e.g. with obtaining a .geojson file for water bodies for your area (or run the blue_areas_geojson_loader.ipynb file in the project folder).
 > 
 > If using Google Colab, you can simply upload these files directly to the `/content` folder.
 
