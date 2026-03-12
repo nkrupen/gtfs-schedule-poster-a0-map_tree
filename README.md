@@ -104,16 +104,16 @@ Google Colab requires additional setup because Chrome is not installed by defaul
 Run this in a **separate Colab cell** before executing the script:
 
 ```bash
-# 1. Update apt
+# 1. Update apt to ensure we can get dependencies
 !apt-get update
 
-# 2. Download Chrome
-!wget [https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb](https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb)
+# 2. Download the official Google Chrome .deb package
+!wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 
-# 3. Install (dependency warnings are normal)
+# 3. Install it (this will likely fail initially due to missing deps, which is normal)
 !dpkg -i google-chrome-stable_current_amd64.deb
 
-# 4. Fix missing dependencies
+# 4. Fix the missing dependencies automatically
 !apt-get -f install -y
 
 # 5. Verify installation
