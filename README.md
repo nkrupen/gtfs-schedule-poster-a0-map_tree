@@ -188,6 +188,7 @@ The script will:
 
 ```python
 import subprocess
+from google.colab import files
 
 def convert_to_fogra51(input_pdf, output_pdf, icc_profile_path="PSOcoated_v3.icc"):
     gs_cmd = [
