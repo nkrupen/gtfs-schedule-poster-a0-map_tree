@@ -175,7 +175,7 @@ The script will:
 
 # 🎨 CMYK Conversion (FOGRA51)
 
-## Install Ghostscript
+## Install Ghostscript and ensure that PSOcoated_v3.icc file is in the Colab folder
 
 ```bash
 !apt-get update
@@ -184,11 +184,10 @@ The script will:
 
 ---
 
-## Convert PDF
+## Prepare a conversion function
 
 ```python
 import subprocess
-from google.colab import files
 
 def convert_to_fogra51(input_pdf, output_pdf, icc_profile_path="PSOcoated_v3.icc"):
     gs_cmd = [
@@ -204,11 +203,24 @@ def convert_to_fogra51(input_pdf, output_pdf, icc_profile_path="PSOcoated_v3.icc
         f"-sOutputFile={output_pdf}",
         input_pdf
     ]
-    
-    subprocess.run(gs_cmd, check=True)
 
-convert_to_fogra51("your_poster.pdf", "output_fogra51.pdf")
-files.download("output_fogra51.pdf")
+    print(f"Converting {input_pdf} to CMYK FOGRA 51...")
+    subprocess.run(gs_cmd, check=True)
+    print("Conversion complete!")
+```
+
+---
+## Make a conversion
+
+```bash
+convert_to_fogra51("YOURFILE.pdf", "YOURFILE_cmyk.pdf")
+```
+
+---
+## Download a converted file
+
+```bash
+files.download("YOURFILE_cmyk.pdf")
 ```
 
 ---
