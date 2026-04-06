@@ -1,172 +1,161 @@
 # GTFS Schedule Poster Generator (A0-format posters supplemented with a map and a route tree)
 
+**Updated: 04/2026**
+
 A Python tool that parses GTFS (General Transit Feed Specification) data and OpenStreetMap data to generate large-format (A0), print-ready PDF schedule posters with integrated local maps and route trees.
 
 This tool automatically calculates active bus trips, handles school vs. holiday schedules, generates localized QR codes, and dynamically draws context-aware street maps and route diagrams directly into the final layout.
 
 ---
 
-## Features
+## 🆕 Update 04/2026
 
-- **Direct GTFS Parsing:** Reads directly from a standard `gtfs.zip` file (no database required).
-- **Dynamic Map Generation:** Uses `osmnx` and `geopandas` to automatically fetch OpenStreetMap data and draw a localized map around the specific bus stop, including routes, streets, buildings, and water features.
-- **Route Tree Diagrams:** Automatically calculates the next stops for departing routes and generates a clean, branched SVG route map.
-- **School vs. Holiday Logic:** Compares two representative weeks (school & holiday) to correctly classify and color-code departures.
-- **Automated PDF Conversion:** Uses headless Google Chrome to generate high-quality, print-ready PDFs.
-- **Batch Processing:** Generate posters for multiple stop IDs in one run and automatically bundle them into a single `posters.zip` file.
-- **QR Code Integration:** Automatically generates Digitransit-based stop links using the provided city/area name.
-- **Selection of color palette:** Allows the user to select a HEX color for background and bus icons.
+- Added Google Colab pre-processing (Chrome + Arial fonts)
+- Added CMYK (FOGRA51) post-processing workflow
 
 ---
 
-## Copyright and License
+## ✨ Features
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
-
-**Author & Primary Maintainer:** Nikolay Krupen. The development work and testing was done using the data created by the City of Kotka. A special thanks to Paula Mussalo and Pyry Tuttavainen for helping to finish the posters' design!
-
----
-
-## Prerequisites
-
-- **Python 3.8+**
-- **Google Chrome / Chromium:** The script relies on the Chrome CLI (`google-chrome --headless`) to generate PDFs. Chrome **must** be installed and available in your system's PATH.
+- Direct GTFS parsing from `gtfs.zip`
+- Dynamic map generation using `osmnx` and `geopandas`
+- Automatic route tree diagrams (SVG)
+- School vs. holiday schedule detection
+- Headless Chrome PDF generation
+- Batch processing for multiple stops
+- QR code generation (Digitransit links)
+- Custom HEX color theme support
 
 ---
 
-## Project Structure
+## 📜 License
 
-Before running the script, ensure your working directory contains the necessary data files:
+Licensed under **GNU General Public License v3.0**.
+
+**Author & Maintainer:** Nikolay Krupen  
+Development tested with data from the City of Kotka.  
+Special thanks: Paula Mussalo, Pyry Tuttavainen
+
+---
+
+## ⚙️ Prerequisites
+
+- Python 3.8+
+- Google Chrome / Chromium (required for PDF generation)
+
+---
+
+## 📁 Project Structure
 
 ```text
 gtfs-schedule-poster/
 ├── main.py
 ├── requirements.txt
-├── gtfs.zip                                      <-- Your GTFS data feed
-├── routes.gpkg                                   <-- GeoPackage containing route line strings
-├── blue_areas.geojson       <-- GeoJSON for custom water bodies (can be derived using blue_areas_geojson_loader in the project folder)
-├─ templates/                   <-- Required folder for HTML templates
-├    └── poster_template.html
-└── assets/                                      <-- Required folder for graphics (or place in root)
-    ├── logo.svg                                 <-- Your transit agency logo
-    └── alareuna.svg                             <-- Bottom graphic/banner
+├── gtfs.zip
+├── routes.gpkg
+├── blue_areas.geojson
+├── templates/
+│   └── poster_template.html
+└── assets/
+    ├── logo.svg
+    └── alareuna.svg
 ```
 
-> **Important:** Water body and GTFS files are large and are not included in the repository. You must download the GTFS feed and water body layers for your target transit agency / area and place them in the root directory. Ask a project maintainer if you need help e.g. with obtaining a .geojson file for water bodies for your area (or run the blue_areas_geojson_loader.ipynb file in the project folder).
-> 
-> If using Google Colab, you can simply upload these files directly to the `/content` folder.
+**Important:**
+- GTFS and water data are NOT included
+- You must provide:
+  - `gtfs.zip`
+  - `routes.gpkg`
+  - `blue_areas.geojson`
+
+Colab users can upload these directly into `/content`.
 
 ---
 
-## Installation (Local Environment)
+## 💻 Installation (Local)
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/nkrupen/gtfs-schedule-poster-a0-map_tree.git
-   cd gtfs-schedule-poster-a0-map_tree
-   ```
-
-2. Install the required Python packages:
-   ```bash
-   pip install -r requirements.txt
-   ```
-   *(Note: This includes heavy spatial libraries like `geopandas` and `osmnx`.)*
+```bash
+git clone https://github.com/nkrupen/gtfs-schedule-poster-a0-map_tree.git
+cd gtfs-schedule-poster-a0-map_tree
+pip install -r requirements.txt
+```
 
 ---
 
-## Usage
-
-Run the script:
+## ▶️ Usage
 
 ```bash
 python main.py
 ```
 
-The interactive prompt will ask you to confirm or enter:
+You will be prompted for:
 
-1. **GTFS File:** Name of your GTFS zip (default: `gtfs.zip`)
-2. **Routes GPKG:** GeoPackage for drawing route lines (default: `routes.gpkg`)
-3. **Water GeoJSON:** Custom water areas (default: `blue_areas.geojson`)
-4. **HEX color code:** Theme hex color for background and bus icons (default: #3069b3)
-5. **Stop Numbers:** Comma-separated stop IDs (e.g., `155766,123456`)
-6. **Date Label:** Validity period printed on the poster (e.g., `10.8.2025–31.5.2026`)
-7. **School Week Start:** A normal Monday during the school term (`YYYY-MM-DD`)
-8. **Holiday Week Start:** A normal Monday during school holidays (`YYYY-MM-DD`)
-9. **City Name:** Used for the Digitransit QR code URL (e.g., `Kotka`)
+- GTFS file (default: `gtfs.zip`)
+- Routes GPKG (`routes.gpkg`)
+- Water GeoJSON (`blue_areas.geojson`)
+- HEX color (default: `#3069b3`)
+- Stop IDs (comma-separated)
+- Date label (e.g. `10.8.2025–31.5.2026`)
+- School week start (YYYY-MM-DD)
+- Holiday week start (YYYY-MM-DD)
+- City name (for QR codes)
 
 ---
 
-## Running in Google Colab
+# ☁️ Running in Google Colab
 
-Google Colab requires additional setup because Chrome is not installed by default.
-
-### Step 1 – Install Google Chrome in Colab
-Run this in a **separate Colab cell** before executing the script:
+## Step 1 – Install Google Chrome
 
 ```bash
-# 1. Update apt to ensure we can get dependencies
 !apt-get update
-
-# 2. Download the official Google Chrome .deb package
 !wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-
-# 3. Install it (this will likely fail initially due to missing deps, which is normal)
 !dpkg -i google-chrome-stable_current_amd64.deb
-
-# 4. Fix the missing dependencies automatically
 !apt-get -f install -y
-
-# 5. Verify installation
 !google-chrome --version
 ```
-## Step 2 – (Optional) Reset Project Folder in Colab
 
-If the repository becomes nested or corrupted:
+---
+
+## Step 2 – Install MS Core Fonts (Arial)
 
 ```bash
-# 1. Move out of the folder
+!echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+!apt-get update
+!apt-get install -y ttf-mscorefonts-installer
+!fc-cache -f -v
+```
+
+---
+
+## Step 3 – (Optional) Reset Project Folder
+
+```bash
 %cd /content
-
-# 2. Force delete existing folder
 !rm -rf gtfs-schedule-poster-a0-map_tree
-
-# 3. Clone fresh
 !git clone https://github.com/nkrupen/gtfs-schedule-poster-a0-map_tree.git
-
-# 4. Enter folder
 %cd gtfs-schedule-poster-a0-map_tree
 ```
 
 ---
 
+## Step 4 – Clone Repository
 
-### Step 3 – Clone the repository
 ```bash
 !git clone https://github.com/nkrupen/gtfs-schedule-poster-a0-map_tree.git
 %cd gtfs-schedule-poster-a0-map_tree
 ```
 
-## Step 4 – Run the Script in Colab
+---
 
-⚠️ In Colab, you must use `!python`:
+## Step 5 – Run Script
 
 ```bash
 !python main.py
 ```
 
-Do **not** use:
-
-```bash
-python main.py
-```
-
-The interactive prompts will work inside the Colab cell.
-
 ---
 
-## Step 5 – Download Posters Manually (If Needed)
-
-If the ZIP file does not download automatically:
+## Step 6 – Download Output
 
 ```python
 from google.colab import files
@@ -175,67 +164,112 @@ files.download('posters.zip')
 
 ---
 
-## Output & Post-Processing
+## 📤 Output
 
 The script will:
-1. Generate individual `.html` files containing the layout and inline SVGs.
-2. Convert them into `.pdf` posters.
-3. Bundle the PDFs into `posters.zip`.
-
-### ⚠️ Note on Manual Adjustments
-Because bus stops vary wildly in the density of their schedules, map surroundings, and route complexities, the automated layout might occasionally result in overlapping text or slightly misaligned SVG elements. PDF generation can take about 30-120 seconds.
-
-**Finalizing the PDF schedule poster may require a bit of manual work.** It is highly recommended to open the generated PDFs in a vector-capable PDF editor (such as PDF-XChange Editor, Adobe Illustrator, or Acrobat) to make minor typographical tweaks, nudge overlapping route tree labels, or adjust map pins before sending them to the printers.
+- Generate `.html` layouts
+- Convert to `.pdf`
+- Bundle into `posters.zip`
 
 ---
 
-## Troubleshooting
+# 🎨 CMYK Conversion (FOGRA51)
 
-- **PDF Generation Fails / Chrome Errors:** Ensure Chrome is correctly installed. On some Linux distributions, the binary might be called `chromium-browser` instead of `google-chrome`. If necessary, modify the subprocess command in `main.py`.
-- **Missing Spatial Libraries:** If `osmnx` or `geopandas` fails to install locally, it is highly recommended to use a Conda environment (`conda install -c conda-forge geopandas osmnx`), as compiling spatial C-libraries via `pip` on Windows can be tricky.
-- **Missing Map Data:** If the script cannot find your GTFS or `.gpkg`/`.geojson` files, it will fall back to generating a poster with an empty map background. Double-check your file paths.
-- ## `FileNotFoundError: templates/poster_template.html`
+## Install Ghostscript
 
-Ensure:
-
-- The `templates` folder exists.
-- `poster_template.html` is inside it.
-- There is no duplicated nested repository folder.
-
----
-
-## PDF Generation Fails
-
-Ensure Chrome is correctly installed.
-
-On some Linux systems, the binary may be:
-
-- `google-chrome-stable`
-- `chromium-browser`
-
-If necessary, modify the Chrome command in `main.py`.
-
----
-
-## Nested Repository Issue in Colab
-
-If your path looks like:
-
-```text
-gtfs-schedule-poster-a3-mapless/gtfs-schedule-poster-a3-mapless/main.py
+```bash
+!apt-get update
+!apt-get install -y ghostscript
 ```
 
-You cloned the repository inside itself.  
-Use the reset steps above.
+---
+
+## Convert PDF
+
+```python
+import subprocess
+from google.colab import files
+
+def convert_to_fogra51(input_pdf, output_pdf, icc_profile_path="PSOcoated_v3.icc"):
+    gs_cmd = [
+        "gs",
+        "-dSAFER",
+        "-dBATCH",
+        "-dNOPAUSE",
+        "-dNOCACHE",
+        "-sDEVICE=pdfwrite",
+        "-sColorConversionStrategy=CMYK",
+        f"-sOutputICCProfile={icc_profile_path}",
+        "-dOverrideICC=true",
+        f"-sOutputFile={output_pdf}",
+        input_pdf
+    ]
+    
+    subprocess.run(gs_cmd, check=True)
+
+convert_to_fogra51("your_poster.pdf", "output_fogra51.pdf")
+files.download("output_fogra51.pdf")
+```
 
 ---
 
-# Notes & Best Practices
+## ⚠️ Manual Adjustments
 
-- Always use representative Mondays for school and holiday comparison. Choose the weeks that do not have any public holidays.
-- Ensure your GTFS feed is up to date and internally consistent, as well as covering the period with the chosen weeks.
-- Large stops may significantly scale down typography automatically.
-- The script assumes standard GTFS structure (`trips.txt`, `stop_times.txt`, `calendar.txt`, etc.) and is tailored to Finnish names of calendars (e.g. containing "KOUL" for school days and "LOMA" for school holidays).
-- When modifying the HTML template, keep all required `{{ placeholder }}` tags intact.
+- Layout may require minor tweaks
+- Dense stops may cause overlap
+- PDF generation: ~30–120 seconds
+
+Recommended tools:
+- PDF-XChange Editor
+- Adobe Illustrator
+- Adobe Acrobat
+
+---
+
+# 🛠️ Troubleshooting
+
+## Chrome / PDF Issues
+- Ensure Chrome is installed
+- Try `chromium-browser` instead of `google-chrome`
+
+## Missing Spatial Libraries
+Use Conda:
+```bash
+conda install -c conda-forge geopandas osmnx
+```
+
+## Missing Map Data
+- Verify file paths
+- Ensure GTFS and Geo files exist
+
+## Template Not Found
+```
+templates/poster_template.html
+```
+Check:
+- Folder exists
+- File is inside
+- No nested repo
+
+## Nested Repository Issue
+Wrong:
+```
+gtfs-schedule-poster-a0-map_tree/gtfs-schedule-poster-a0-map_tree/
+```
+
+Fix:
+- Delete and re-clone repo
+
+---
+
+# 📝 Notes & Best Practices
+
+- Use representative Mondays (no holidays)
+- Ensure GTFS consistency
+- Large stops may scale typography
+- Designed for Finnish GTFS conventions:
+  - "KOUL" (school)
+  - "LOMA" (holiday)
+- Preserve all `{{ placeholders }}` in HTML templates
 
 ---
