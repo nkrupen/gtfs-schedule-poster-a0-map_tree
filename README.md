@@ -20,7 +20,7 @@ This tool automatically calculates active bus trips, handles school vs. holiday 
 - Direct GTFS parsing from `gtfs.zip`
 - Dynamic map generation using `osmnx` and `geopandas`
 - Automatic route tree diagrams (SVG)
-- School vs. holiday schedule detection
+- School vs. holiday schedule consideration
 - Headless Chrome PDF generation
 - Batch processing for multiple stops
 - QR code generation (Digitransit links)
@@ -96,7 +96,7 @@ You will be prompted for:
 - HEX color (default: `#3069b3`)
 - Stop IDs (comma-separated)
 - Date label (e.g. `10.8.2025–31.5.2026`)
-- School week start (YYYY-MM-DD)
+- School week start (YYYY-MM-DD). If poster is made only for a holiday season, insert a start date of a holiday week.
 - Holiday week start (YYYY-MM-DD)
 - City name (for QR codes)
 
