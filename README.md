@@ -116,7 +116,7 @@ You will be prompted for:
 
 ---
 
-## Step 2 – Install MS Core Fonts (Arial)
+## Step 2 – Install MS Core Fonts (Arial). Optional; if not used, a LiberationSans font will be used for printing.
 
 ```bash
 !echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
